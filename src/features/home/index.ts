@@ -1,0 +1,1 @@
+export { default as Globe } from './components/Globe'
