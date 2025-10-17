@@ -27,7 +27,7 @@ interface MessageBoxProps {
   selectedConversationId?: string | null;
 }
 
-const GRAPHQL_ENDPOINT = import.meta.env.VITE_API_BACKEND_URL || 'http://localhost:10000/graphql';
+const GRAPHQL_ENDPOINT = import.meta.env.VITE_API_BACKEND_URL || "https://learnify-be.onrender.com/graphql";
 
 const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibilityChange, selectedConversationId }, ref) => {
   const { courseId, lessonId } = useParams();

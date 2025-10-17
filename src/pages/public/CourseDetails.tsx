@@ -443,7 +443,7 @@ export default function CourseDetailsPage() {
                     </IconButton>
                     <DialogContent dividers>
                       <Typography component="div" gutterBottom>Mind map
-                        <MindmapBox courseId={courseId} graphqlEndpoint="http://localhost:10000/graphql" />
+                        <MindmapBox courseId={courseId} graphqlEndpoint={import.meta.env.VITE_API_BACKEND_URL || "https://learnify-be.onrender.com/graphql"} />
                       </Typography>
                     </DialogContent>
                     <DialogActions>

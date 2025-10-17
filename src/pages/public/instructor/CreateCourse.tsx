@@ -22,7 +22,7 @@ type CreateCourseResponse = {
 
 type FileUploadStatus = "idle" | "uploading" | "done" | "error";
 
-const GRAPHQL_URL = (import.meta.env.VITE_GRAPHQL_URL as string) ?? "http://localhost:10000/graphql";
+const GRAPHQL_URL = import.meta.env.VITE_API_BACKEND_URL ?? "https://learnify-be.onrender.com/graphql";
 
 // ---------------- API (axios) ----------------
 async function createCourseApi(courseName: string, abstract: string, creatorId: string) {
