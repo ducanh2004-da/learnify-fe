@@ -20,7 +20,7 @@ export const quiz = [
         answer: 'd'
     },
     {
-        header: 'ReactJS là gì',
+        header: 'ReactJS là gì????',
         options: {
             a: 'A. I dont know hichic',
             b: 'B. Why I have to answer',
