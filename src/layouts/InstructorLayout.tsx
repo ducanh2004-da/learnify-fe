@@ -47,6 +47,7 @@ export default function InstructorLayout(): JSX.Element{
   const userMenuOptions = [
     { label: 'Profile', value: 'profile', icon: 'lucide:user' },
     { label: 'Dashboard', value: 'dashboard', icon: 'lucide:layout-dashboard' },
+    { label: 'Back to learner page', value: 'learner', icon: 'lucide:layout-dashboard' },
     { label: 'Logout', value: 'logout', icon: 'lucide:log-out' }
   ]
 
@@ -61,6 +62,9 @@ export default function InstructorLayout(): JSX.Element{
       case 'logout':
         logout()
         navigate('/', { replace: true })
+        break
+      case 'learner':
+        window.location.href = '/'
         break
       default:
         break
