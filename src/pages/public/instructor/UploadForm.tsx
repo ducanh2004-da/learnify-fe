@@ -284,14 +284,17 @@ export default function UploadForm({ courseId, open = false, onClose }: UploadFo
                 <DialogTitle>Tải lên tài liệu để tạo bài giảng (AI)</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Tải lên các file PDF. Hệ thống sẽ gọi API AI để tạo lesson và sections cho khoá học hiện tại.
+                        Tải lên các file PDF. Hệ thống sẽ tự động tạo bài học cho khoá học hiện tại.
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                            <p className="text-sm text-yellow-800">Gợi ý: Tải lên từng bài học, mỗi bài học là 1 file pdf</p>
+                        </div>
                     </DialogContentText>
 
                     <Box component="div" sx={{ mt: 2 }}>
                         <Card className={`shadow-lg border-0`}>
                             <CardHeader>
                                 <CardTitle className="text-xl">Upload Tài Liệu</CardTitle>
-                                <CardDescription>Chỉ hỗ trợ file PDF (tối đa 50MB mỗi file)</CardDescription>
+                                <CardDescription>Hiện tại chỉ hỗ trợ tài liệu pdf dưới 10 trang</CardDescription>
                             </CardHeader>
 
                             <CardContent>
@@ -314,7 +317,7 @@ export default function UploadForm({ courseId, open = false, onClose }: UploadFo
                                         <div className="inline-block mx-auto cursor-pointer border border-gray-300 px-4 py-2 rounded-md bg-white hover:bg-gray-50">Chọn File PDF</div>
                                     </Label>
 
-                                    <p className="text-sm text-gray-500 mt-3">Chỉ hỗ trợ PDF. Tối đa 50MB mỗi file.</p>
+                                    <p className="text-sm text-gray-500 mt-3">Chỉ hỗ trợ PDF. Tối đa 10MB mỗi file.</p>
                                 </div>
 
                                 {uploadedFiles.length > 0 && (

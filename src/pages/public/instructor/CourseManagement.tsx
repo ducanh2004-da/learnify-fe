@@ -213,6 +213,7 @@ export default function CourseManagement() {
                   </div>
 
                   <div className="flex items-center gap-2 mt-4 md:mt-0">
+                    <p className="tip text-green-800 text-sm">(Click Edit to upload pdf file)</p>
                     <UploadForm courseId={course?.id} open={false} />
                     <ViewDetailCourse courseId={course?.id} open={false} />
                     <Button variant="ghost" size="sm">

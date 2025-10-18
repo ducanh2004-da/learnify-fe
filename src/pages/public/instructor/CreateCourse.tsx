@@ -113,6 +113,7 @@ export default function CreateCourse() {
       const courseId = courseResult.id;
       setCreatedCourseId(courseId);
       toast.success(`Khóa học "${courseResult.courseName}" đã được tạo thành công!`);
+      toast.success("Hãy vào mục quản lý khóa học để thêm từng bài học cho khóa học");
     } catch (error: any) {
       console.error("Create course failed:", error);
       toast.error(error?.message || "Tạo khóa học thất bại.");
@@ -148,7 +149,8 @@ export default function CreateCourse() {
 
               {createdCourseId && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-sm text-green-800">✓ Course ID: <code className="font-mono">{createdCourseId}</code></p>
+                  <p className="text-sm text-green-800">✓ Khóa học tạo thành công</p>
+                  <p className="text-sm text-green-800">✓ Hãy vào mục quản lý khóa học để thêm từng bài học cho khóa học đó</p>
                 </div>
               )}
             </CardContent>

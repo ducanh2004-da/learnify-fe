@@ -588,8 +588,9 @@ export default function ClassRoomPage() {
   // -------------------- Start lesson handler (uses fetchSectionsMutation) --------------------
   const handleStartLesson = useCallback(async () => {
     try {
+      console.log("Conversation:", selectedConversationId);
       if (!lessonId) {
-        toast.error('Không tìm thấy lessonId trên URL');
+        toast.error('Không tìm thấy lesson');
         return;
       }
 
@@ -606,7 +607,7 @@ export default function ClassRoomPage() {
       else if (typeof resp === 'object') sections = [resp];
 
       if (!sections || sections.length === 0) {
-        toast.error('Không tìm thấy nội dung bài học (sections)');
+        toast.error('Không tìm thấy nội dung mục trong bài học');
         return;
       }
 
@@ -627,7 +628,7 @@ export default function ClassRoomPage() {
         // - We'll not rely only on markdown link for PDFs (that causes "open in new tab" behaviour)
         // - Instead we put a markdown image (if preview) or let the render code embed iframe as fallback
         const imageMd = (url && previewUrl) ? `![slide](${previewUrl})\n\n` : (url ? `[📄 Slide](${url})\n\n` : '');
-        const msgText = `${imageMd}${content || ''}`;
+        const msgText = `${imageMd}`;
 
         // push to messages (hiển thị ngay)
         setMessages((prev) => [
@@ -780,29 +781,40 @@ export default function ClassRoomPage() {
               {messages.length === 0 && (
                 <div className="text-center text-slate-400 mt-8">
                   <div className="text-2xl font-medium mb-4">Welcome! Ready to start the lesson?</div>
-                  <div className="mt-2 text-base mb-6">Click below to go through lesson slides — the tutor will read each section aloud.</div>
+                  <div className="mt-2 text-base mb-6">Choose Conversation to get started</div>
 
                   {!lessonStartedByUser ? (
-                    <div className="flex items-center justify-center gap-4">
-                      <Button
-                        onClick={() => void handleStartLesson()}
-                        className="px-6 py-3 rounded-full bg-primary text-white text-lg"
-                        disabled={fetchSectionsMutation.isPending}
-                      >
-                        {fetchSectionsMutation.isPending ? 'Loading...' : 'Start lesson'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => { /* optional: preview first slide only, or other action */ }}
-                      >
-                        Preview
-                      </Button>
-                    </div>
+                    selectedConversationId ? (
+                      <div className="flex items-center justify-center gap-4">
+                        <Button
+                          onClick={() => void handleStartLesson?.()}
+                          className="px-6 py-3 rounded-full bg-primary text-white text-lg"
+                          disabled={Boolean(fetchSectionsMutation?.isPending) || !selectedConversationId}
+                        >
+                          {fetchSectionsMutation?.isPending ? 'Loading...' : 'Start lesson'}
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            // optional: preview first slide only, or other action
+                           
+                          }}
+                        >
+                          Preview
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-4 text-sm text-slate-500">
+                        Please select a conversation to enable start lecturing.
+                      </div>
+                    )
                   ) : (
                     <div className="text-sm text-slate-500">Lesson started — slides will appear in chat.</div>
                   )}
                 </div>
               )}
+
 
               {messages.map((m) => {
                 const isUser = m.role === 'user';
@@ -851,7 +863,7 @@ export default function ClassRoomPage() {
 
             {/* Input area */}
             <div className="mt-50">
-             <MessageBox ref={messageBoxRef} visible={boxesVisibility.message} onVisibilityChange={(v: boolean) => setBoxesVisibility((p) => ({ ...p, message: v }))} selectedConversationId={selectedConversationId} />
+              <MessageBox ref={messageBoxRef} visible={boxesVisibility.message} onVisibilityChange={(v: boolean) => setBoxesVisibility((p) => ({ ...p, message: v }))} selectedConversationId={selectedConversationId} />
               <Button className="ml-330 mb-6 p-7" onClick={handleStop}>Stop</Button>
             </div>
           </div>
