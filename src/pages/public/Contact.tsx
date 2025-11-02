@@ -5,7 +5,7 @@ import { contactOptions, faqs } from '@/lib/staticData'
 export default function ContactPage() {
     return (
         <section className="w-full min-h-[67.5rem] relative bg-gradient-to-br from-blue-50 via-white to-purple-100 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-900 transition-colors duration-700">
-            <div className="relative min-h-[43rem]">
+            <div className="container mx-auto px-4 sm:px-6 md-px-12 py-12 md:py-20">
                 <div
                     className={cn(
                         'absolute inset-0',

@@ -21,7 +21,7 @@ const fullstackMembers = teamMembers.filter(member =>
 function TeamMember({ name, jobTitle, image }: TeamMemberProps) {
   return (
     <div className="flex flex-col items-center">
-      <div className="size-[300px] rounded-full shrink-0 grow-0 shadow-xl overflow-hidden">
+      <div className="lg:size-[300px] rounded-full shrink-0 grow-0 shadow-xl overflow-hidden">
         <OptimizeImage 
           src={image.name} 
           alt={name} 
