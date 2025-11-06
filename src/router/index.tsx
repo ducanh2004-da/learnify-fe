@@ -1,9 +1,11 @@
 import { lazy } from 'react';
-import { createBrowserRouter, redirect } from 'react-router-dom';
+import { createBrowserRouter, redirect, Navigate } from 'react-router-dom';
 
 import { AuthLayout, MainLayout, ClassRoomLayout, DashboardLayout, InstructorLayout } from '@/layouts';
 import { ErrorBoundary } from '@/components';
-import { getCookie, isTokenValid, deleteCookie } from '@/stores';
+// import { getCookie, isTokenValid, deleteCookie } from '@/stores';
+import { useAuthStore } from '@/stores/auth.store';
+
 
 const Pages = {
   Main: {
@@ -31,72 +33,105 @@ const Pages = {
 };
 
 // helper lấy token: ưu tiên cookie, fallback localStorage
-const getToken = (): string | null => {
-  const cookieToken = getCookie('token');
-  if (cookieToken) return cookieToken;
-  const localToken = localStorage.getItem('token');
-  return localToken ?? null;
-};
+// const getToken = (): string | null => {
+//   const cookieToken = getCookie('token');
+//   if (cookieToken) return cookieToken;
+//   const localToken = localStorage.getItem('token');
+//   return localToken ?? null;
+// };
 
 // parse token safe — có thể truyền token làm argument
-const parseToken = (token?: string) => {
-  const t = token ?? getToken();
-  if (!t) return null;
-  try {
-    const payload = JSON.parse(atob(t.split('.')[1]));
-    return payload; // { sub, email, role }
-  } catch (err) {
-    console.error('parseToken error', err);
-    return null;
-  }
-};
+// const parseToken = (token?: string) => {
+//   const t = token ?? getToken();
+//   if (!t) return null;
+//   try {
+//     const payload = JSON.parse(atob(t.split('.')[1]));
+//     return payload; // { sub, email, role }
+//   } catch (err) {
+//     console.error('parseToken error', err);
+//     return null;
+//   }
+// };
 
-const authGuard = () => {
-  const token = getToken();
+// const authGuard = () => {
+//   const token = getToken();
 
-  if (!token || !isTokenValid(token)) {
-    // nếu có token không hợp lệ thì xoá cả cookie + localStorage
-    if (token) {
-      try { deleteCookie('token'); } catch {}
-      try { localStorage.removeItem('token'); } catch {}
-    }
-    return redirect('/auth/login');
-  }
-  // trả null để route tiếp tục (không redirect)
-  return null;
-};
+//   if (!token || !isTokenValid(token)) {
+//     // nếu có token không hợp lệ thì xoá cả cookie + localStorage
+//     if (token) {
+//       try { deleteCookie('token'); } catch {}
+//       try { localStorage.removeItem('token'); } catch {}
+//     }
+//     return redirect('/auth/login');
+//   }
+//   // trả null để route tiếp tục (không redirect)
+//   return null;
+// };
 
-const redirectIfAuthenticated = () => {
-  const token = getToken();
-  if (token && isTokenValid(token)) {
-    const payload = parseToken(token);
-    if (payload?.role === 'INSTRUCTOR' || payload?.role === 'instructor') {
-      return redirect('/instructor');
-    } else {
-      return redirect('/');
-    }
-  }
-  return null;
-};
+// Protected Route Component
+export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated)
+  const isLoading = useAuthStore(state => state.isLoading)
 
-const instructorGuard = () => {
-  const token = getToken();
-  if (!token || !isTokenValid(token)) {
-    // không hợp lệ -> xóa token nếu có và yêu cầu login
-    try { deleteCookie('token'); } catch {}
-    try { localStorage.removeItem('token'); } catch {}
-    return redirect('/auth/login');
+  // show nothing while auth state initializing (so initAuth can check cookie)
+  if (isLoading) return null
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth/login" replace />
   }
 
-  const payload = parseToken(token);
-  // Nếu payload thiếu hoặc role không phải instructor -> redirect to login hoặc unauthorized
-  if (!payload || !(payload.role === 'INSTRUCTOR' || payload.role === 'instructor')) {
-    return redirect('/auth/login');
+  return <>{children}</>
+}
+
+// Auth Route Component (redirect nếu đã đăng nhập)
+// Auth Route Component (redirect nếu đã đăng nhập)
+export const AuthRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated)
+  const isLoading = useAuthStore(state => state.isLoading)
+
+  if (isLoading) return null
+
+  if (isAuthenticated) {
+    // redirect by role if you want more precise routing:
+    const role = useAuthStore.getState().userDetails?.role?.toString().toUpperCase()
+    if (role === 'INSTRUCTOR') return <Navigate to="/instructor" replace />
+    return <Navigate to="/" replace />
   }
 
-  // thành công -> KHÔNG redirect, trả null để cho phép vào route
-  return null;
-};
+  return <>{children}</>
+}
+
+// const redirectIfAuthenticated = () => {
+//   const token = getToken();
+//   if (token && isTokenValid(token)) {
+//     const payload = parseToken(token);
+//     if (payload?.role === 'INSTRUCTOR' || payload?.role === 'instructor') {
+//       return redirect('/instructor');
+//     } else {
+//       return redirect('/');
+//     }
+//   }
+//   return null;
+// };
+
+// const instructorGuard = () => {
+//   const token = getToken();
+//   if (!token || !isTokenValid(token)) {
+//     // không hợp lệ -> xóa token nếu có và yêu cầu login
+//     try { deleteCookie('token'); } catch {}
+//     try { localStorage.removeItem('token'); } catch {}
+//     return redirect('/auth/login');
+//   }
+
+//   const payload = parseToken(token);
+//   // Nếu payload thiếu hoặc role không phải instructor -> redirect to login hoặc unauthorized
+//   if (!payload || !(payload.role === 'INSTRUCTOR' || payload.role === 'instructor')) {
+//     return redirect('/auth/login');
+//   }
+
+//   // thành công -> KHÔNG redirect, trả null để cho phép vào route
+//   return null;
+// };
 
 export const router = createBrowserRouter([
   {
@@ -114,24 +149,20 @@ export const router = createBrowserRouter([
   {
     path: '/auth',
     element: <AuthLayout />,
-    // loader: redirectIfAuthenticated (redirect if already authed)
-    loader: redirectIfAuthenticated,
     children: [
-      { path: 'login', element: <Pages.Auth.Login /> },
-      { path: 'signup', element: <Pages.Auth.Register /> }
+      { path: 'login', element: <AuthRoute><Pages.Auth.Login /></AuthRoute> },
+      { path: 'signup', element: <AuthRoute><Pages.Auth.Register /></AuthRoute> }
     ],
     errorElement: <ErrorBoundary />
   },
   {
     path: '/dashboard',
-    element: <DashboardLayout />,
-    loader: authGuard,
+    element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
     errorElement: <ErrorBoundary />
   },
   {
     path: '/dashboard/classroom',
-    element: <ClassRoomLayout />,
-    loader: authGuard,
+    element: <ProtectedRoute><ClassRoomLayout /></ProtectedRoute>,
     children: [
       { index: true, element: <Pages.Dashboard.ClassRoom /> },
       { path: ':courseId/lessons/:lessonId', element: <Pages.Dashboard.ClassRoom /> }
@@ -139,8 +170,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/instructor',
-    element: <InstructorLayout />,
-    loader: instructorGuard,
+    element: <ProtectedRoute><InstructorLayout /></ProtectedRoute>,
     children: [
       { index: true, element: <Pages.Instructor.Home /> },
       { path: 'create-course', element: <Pages.Instructor.CreateCourse /> },

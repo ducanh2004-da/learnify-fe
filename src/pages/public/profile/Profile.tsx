@@ -26,7 +26,7 @@ export default function ProfilePage() {
         isFetching 
       } = useQuery<User>({
         queryKey: ['getUserId', authUser?.id],
-        queryFn: () => profileService.getUserById(authUser?.id || null),
+        queryFn: () => profileService.getUserById(),
         enabled: !!authUser?.id,
       });
 

@@ -16,9 +16,10 @@ interface GoogleUserInfo {
 }
 
 interface AuthUser {
+  id?: string,
   email?: string
   username?: string
-  token: string
+  role?: string
   [key: string]: any
 }
 
@@ -26,6 +27,8 @@ interface AuthStore {
   user: AuthUser | null
   googleInfo: GoogleUserInfo | null
   userDetails: User | null
+  isAuthenticated: boolean
+  isLoading: boolean
   login: (email: string, password: string) => Promise<any>
   register: (email: string, username: string, phoneNumber: string, password: string) => Promise<any>
   loginWithGoogle: (googleId: string, email: string, googleInfo?: GoogleUserInfo) => Promise<any>

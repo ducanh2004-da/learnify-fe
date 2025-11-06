@@ -4,24 +4,23 @@ import { courses } from './../../../mocks/courses.mock';
 import { CompleteCourse } from '../types/completeCourse.type';
 import { InProgressCourse } from '../types/inProgressCourse.type';
 export const profileService = {
-  getUserById: async (userId: string | null) : Promise<User> => {
-    if (!userId) throw new Error('User ID is required');
+  getUserById: async () : Promise<User> => {
     
     const response = await apiConfig.post('', {
       query: `
-        query User($userId: String!) {
-  user(id: $userId) {
-    createdAt
-    email
-    id
-    phoneNumber
-    role
-    username
-  }
-}
+        query User {
+          user {
+            id
+            username
+            email
+            phoneNumber
+            role
+            createdAt
+            updatedAt
+          }
+        }
       `,
-      variables: { userId: userId }
-    });
+    })
 
     const userData = response.data.data.user;
     return {
