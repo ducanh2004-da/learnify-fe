@@ -1,3 +1,4 @@
+// ClassRoom.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState, lazy } from 'react';
 
 // third-party
@@ -58,7 +59,6 @@ interface Conversation {
 // -------------------- Constants & Helpers --------------------
 const STREAM_BASE_DELAY = 60; // ms
 
-
 function normalizeText(s?: string) {
   if (!s) return '';
   let t = s.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -106,6 +106,74 @@ function extractFirstMarkdownImage(text: string) {
   return { imgUrl: null as string | null, restText: text };
 }
 
+/**
+ * Collapse consecutive duplicate paragraphs/sentences to avoid repeated text rendering.
+ * - Removes consecutive identical paragraphs (split by 2+ newlines)
+ * - Then removes consecutive identical sentences inside each paragraph
+ */
+function collapseRepeatedText(raw: string) {
+  if (!raw) return raw;
+  let text = String(raw).trim();
+
+  // quick exit for very short text
+  if (text.length < 50) return text;
+
+  // 1) collapse consecutive duplicate paragraphs (separated by 2+ newlines)
+  const paragraphs = text.split(/\n{2,}/g).map((p) => p.trim()).filter(Boolean);
+  const collapsedParas: string[] = [];
+  for (const p of paragraphs) {
+    if (collapsedParas.length === 0 || p !== collapsedParas[collapsedParas.length - 1]) {
+      collapsedParas.push(p);
+    }
+  }
+  text = collapsedParas.join('\n\n');
+
+  // 2) collapse consecutive duplicate sentences inside each paragraph
+  const parasAfterSentenceDedupe = text.split('\n\n').map((para) => {
+    // split into sentences (keep punctuation)
+    const sentences = para.split(/(?<=[.?!])\s+/);
+    const out: string[] = [];
+    for (const s of sentences) {
+      const sTrim = s.trim();
+      if (!sTrim) continue;
+      // if same as previous sentence exactly, skip
+      if (out.length === 0 || out[out.length - 1] !== sTrim) {
+        out.push(sTrim);
+      }
+    }
+    return out.join(' ');
+  });
+
+  // 3) fallback: if whole text is repeated concatenation of a piece, reduce to single piece
+  let final = parasAfterSentenceDedupe.join('\n\n').trim();
+  try {
+    for (let n = 2; n <= 6; n++) {
+      if (final.length % n !== 0) continue;
+      const pieceLen = Math.floor(final.length / n);
+      const piece = final.slice(0, pieceLen).trim();
+      if (!piece) continue;
+      let repeated = '';
+      for (let i = 0; i < n; i++) repeated += piece;
+      if (repeated === final) {
+        final = piece;
+        break;
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  return final;
+}
+
+/**
+ * Remove leading spaces/tabs on each line (useful when server sends lots of leading indentation)
+ */
+function trimLeadingSpacesPerLine(s?: string) {
+  if (!s) return s ?? '';
+  return String(s).replace(/^[ \t]+/gm, '');
+}
+
 // -------------------- Component --------------------
 export default function ClassRoomPage() {
   // stores / progress
@@ -136,7 +204,6 @@ export default function ClassRoomPage() {
   const displayingSlideIdRef = useRef<string | null>(null);
   const displayingSlideTimeoutRef = useRef<number | null>(null);
   const [userStopped, setUserStopped] = useState<boolean>(false);
-
 
   const pendingRefetchAfterStreamingRef = useRef<boolean>(false);
   // track isSpeaking in a ref to avoid stale closure when awaiting
@@ -618,6 +685,11 @@ export default function ClassRoomPage() {
   function renderAssistantMessage(m: Message) {
     const text = m.text ?? '';
     const { imgUrl, restText } = extractFirstMarkdownImage(text);
+
+    // Clean duplicate repetitions & trim leading spaces only in text area (keep image handling intact)
+    const cleanedRestText = restText ? trimLeadingSpacesPerLine(collapseRepeatedText(restText)) : restText;
+    const cleanedFullText = !imgUrl ? trimLeadingSpacesPerLine(collapseRepeatedText(text)) : null;
+
     if (imgUrl) {
       // if extracted img url points to a jpg generated from pdf preview, we show the <img />.
       // If it points to an actual PDF (rare), we fallback to embed iframe/object below.
@@ -643,9 +715,9 @@ export default function ClassRoomPage() {
                 } catch (e) { /* ignore */ }
               }}
             />
-            {restText ? (
+            {cleanedRestText ? (
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                {restText}
+                {cleanedRestText}
               </ReactMarkdown>
             ) : null}
           </div>
@@ -673,9 +745,9 @@ export default function ClassRoomPage() {
                 }}
               />
             </div>
-            {restText ? (
+            {cleanedRestText ? (
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                {restText}
+                {cleanedRestText}
               </ReactMarkdown>
             ) : null}
           </div>
@@ -683,10 +755,11 @@ export default function ClassRoomPage() {
       }
     }
 
-    // no image: render full markdown
+    // no image: render cleaned full markdown
+    const finalTextToRender = cleanedFullText ?? text;
     return (
       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-        {text}
+        {finalTextToRender}
       </ReactMarkdown>
     );
   }
@@ -768,7 +841,6 @@ export default function ClassRoomPage() {
                           variant="outline"
                           onClick={() => {
                             // optional: preview first slide only, or other action
-
                           }}
                         >
                           Preview
@@ -785,7 +857,6 @@ export default function ClassRoomPage() {
                 </div>
               )}
 
-
               {messages.map((m) => {
                 const isUser = m.role === 'user';
                 return (
@@ -797,7 +868,16 @@ export default function ClassRoomPage() {
                     )}
 
                     <div className="max-w-[85%]">
-                      <div className={`px-5 py-3 rounded-3xl break-words whitespace-pre-wrap text-base leading-7 ${isUser ? 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-br-none' : 'bg-white border shadow-sm rounded-bl-none'}`} style={{ boxShadow: isUser ? '0 10px 30px rgba(59,130,246,0.15)' : undefined }} aria-live={isUser ? undefined : 'polite'}>
+                      <div
+                        className={`px-5 py-3 rounded-3xl break-words whitespace-pre-line text-base leading-7 ${isUser ? 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-br-none' : 'bg-white border shadow-sm rounded-bl-none'}`}
+                        style={{
+                          boxShadow: isUser ? '0 10px 30px rgba(59,130,246,0.15)' : undefined,
+                          overflowWrap: 'anywhere',
+                          wordBreak: 'break-word',
+                          whiteSpace: 'pre-line'
+                        }}
+                        aria-live={isUser ? undefined : 'polite'}
+                      >
                         {isUser ? m.text : renderAssistantMessage(m)}
                       </div>
                       <div className={`mt-2 text-sm ${isUser ? 'text-right text-slate-400' : 'text-slate-500'}`}>{formatTime(m.ts)}</div>
