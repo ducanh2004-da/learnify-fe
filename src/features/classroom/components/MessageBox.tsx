@@ -25,11 +25,12 @@ interface MessageBoxProps {
   visible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
   selectedConversationId?: string | null;
+  inputDisabled?: boolean;
 }
 
 const GRAPHQL_ENDPOINT = import.meta.env.VITE_API_BACKEND_URL || "https://learnify-be.onrender.com/graphql";
 
-const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibilityChange, selectedConversationId }, ref) => {
+const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibilityChange, selectedConversationId, inputDisabled = false }, ref) => {
   const { courseId, lessonId } = useParams();
   const authUser = useAuthStore((s) => s.user);
 
@@ -119,7 +120,7 @@ const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibility
       expandedBorderRadius: '1.25rem',
       collapsedBorderRadius: '50%',
       onShowComplete: () => {
-        if (inputRef.current) inputRef.current.focus();
+        if (inputRef.current && !inputDisabled) inputRef.current.focus();
       }
     },
     true,
@@ -214,6 +215,13 @@ const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibility
     }
   }, [isLessonStarted, isExplanationVisible, isVisible, showMessageBox]);
 
+  // Focus input when it becomes enabled
+  useEffect(() => {
+    if (!inputDisabled && isVisible) {
+      inputRef.current?.focus();
+    }
+  }, [inputDisabled, isVisible]);
+
   useImperativeHandle(ref, () => ({
     show: showMessageBox,
     hide: () => {
@@ -234,132 +242,132 @@ const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibility
         null,
         authUser?.id ?? null
       ),
-   onSuccess: async (result: any) => {
-  // Clear input
-  setMessage('');
+    onSuccess: async (result: any) => {
+      // Clear input
+      setMessage('');
 
-  // Keep sessionId if provided
-  if (result?.sessionId) {
-    setSessionId(result.sessionId);
-  }
-
-  // aggregated response (server may put SSE-like payload into `response`)
-  const agg: string = result?.response || result?.content || '';
-
-  // Parse into events (parseSSEAggregated is defined in this file)
-  let events: any[] = [];
-  try {
-    events = parseSSEAggregated(agg);
-  } catch (err) {
-    events = [];
-  }
-
-  // Filter only the types we care about
-  const chunkEvents = events.filter((ev) =>
-    ev && (ev.type === 'chunk' || ev.type === 'status' || ev.type === 'done' || ev.type === 'end' || ev.type === 'raw')
-  );
-
-  // Dispatch to window so ClassRoom Page can handle streaming UI:
-  try {
-    if (!chunkEvents.length) {
-      // server returned full assistant text (no streaming chunks)
-      window.dispatchEvent(
-        new CustomEvent('ai-chat:assistant_message', {
-          detail: { text: agg }
-        })
-      );
-    } else {
-      for (const ev of chunkEvents) {
-        if (ev.type === 'chunk' && typeof ev.response === 'string') {
-          window.dispatchEvent(
-            new CustomEvent('ai-chat:assistant_chunk', {
-              detail: { text: ev.response }
-            })
-          );
-        } else if (ev.type === 'raw' && typeof ev.raw === 'string') {
-          window.dispatchEvent(
-            new CustomEvent('ai-chat:assistant_chunk', {
-              detail: { text: ev.raw }
-            })
-          );
-        } else if (ev.type === 'status') {
-          window.dispatchEvent(
-            new CustomEvent('ai-chat:assistant_status', {
-              detail: { agent: ev.agent || null }
-            })
-          );
-        } // done/end will be signalled after loop
+      // Keep sessionId if provided
+      if (result?.sessionId) {
+        setSessionId(result.sessionId);
       }
 
-      // finally signal done
-      window.dispatchEvent(new CustomEvent('ai-chat:assistant_done', { detail: {} }));
-    }
-  } catch (dispatchErr) {
-    // fallback: if dispatching fails, emit final text
-    window.dispatchEvent(
-      new CustomEvent('ai-chat:assistant_message', {
-        detail: { text: agg }
-      })
-    );
-  }
+      // aggregated response (server may put SSE-like payload into `response`)
+      const agg: string = result?.response || result?.content || '';
 
-  // ------------------ TTS (Azure) flow: assemble text and speak ------------------
-  try {
-    // Build finalText to speak:
-    let finalText = '';
+      // Parse into events (parseSSEAggregated is defined in this file)
+      let events: any[] = [];
+      try {
+        events = parseSSEAggregated(agg);
+      } catch (err) {
+        events = [];
+      }
 
-    // prefer server-provided `content` if present and non-empty
-    if (result?.content && String(result.content).trim()) {
-      finalText = String(result.content).trim();
-    } else if (chunkEvents.length) {
-      // join chunk/responses into full text
-      finalText = chunkEvents
-        .map((ev) => {
-          if (ev.type === 'chunk' && typeof ev.response === 'string') return ev.response;
-          if (ev.type === 'raw' && typeof ev.raw === 'string') return ev.raw;
-          return '';
-        })
-        .join('');
-      finalText = finalText.trim();
-    } else {
-      // fallback to agg
-      finalText = String(agg || '').trim();
-    }
+      // Filter only the types we care about
+      const chunkEvents = events.filter((ev) =>
+        ev && (ev.type === 'chunk' || ev.type === 'status' || ev.type === 'done' || ev.type === 'end' || ev.type === 'raw')
+      );
 
-    if (finalText) {
-      // inform UI we're thinking / speaking
-      startThinking();
+      // Dispatch to window so ClassRoom Page can handle streaming UI:
+      try {
+        if (!chunkEvents.length) {
+          // server returned full assistant text (no streaming chunks)
+          window.dispatchEvent(
+            new CustomEvent('ai-chat:assistant_message', {
+              detail: { text: agg }
+            })
+          );
+        } else {
+          for (const ev of chunkEvents) {
+            if (ev.type === 'chunk' && typeof ev.response === 'string') {
+              window.dispatchEvent(
+                new CustomEvent('ai-chat:assistant_chunk', {
+                  detail: { text: ev.response }
+                })
+              );
+            } else if (ev.type === 'raw' && typeof ev.raw === 'string') {
+              window.dispatchEvent(
+                new CustomEvent('ai-chat:assistant_chunk', {
+                  detail: { text: ev.raw }
+                })
+              );
+            } else if (ev.type === 'status') {
+              window.dispatchEvent(
+                new CustomEvent('ai-chat:assistant_status', {
+                  detail: { agent: ev.agent || null }
+                })
+              );
+            } // done/end will be signalled after loop
+          }
 
-      if (!isAzureReady) {
-        // SDK not ready: log and skip speaking (optionally could wait/retry)
-        console.warn('Azure TTS not ready - skipping speak for now');
-      } else {
-        const speakResult = await speakAzure(finalText) as { success: boolean; error?: string };
+          // finally signal done
+          window.dispatchEvent(new CustomEvent('ai-chat:assistant_done', { detail: {} }));
+        }
+      } catch (dispatchErr) {
+        // fallback: if dispatching fails, emit final text
+        window.dispatchEvent(
+          new CustomEvent('ai-chat:assistant_message', {
+            detail: { text: agg }
+          })
+        );
+      }
 
-        if (!speakResult?.success && speakResult?.error) {
-          stopAll();
+      // ------------------ TTS (Azure) flow: assemble text and speak ------------------
+      try {
+        // Build finalText to speak:
+        let finalText = '';
 
-          if (speakResult.error.includes('disposed')) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            const retryResult = await speakAzure(finalText) as { success: boolean; error?: string };
+        // prefer server-provided `content` if present and non-empty
+        if (result?.content && String(result.content).trim()) {
+          finalText = String(result.content).trim();
+        } else if (chunkEvents.length) {
+          // join chunk/responses into full text
+          finalText = chunkEvents
+            .map((ev) => {
+              if (ev.type === 'chunk' && typeof ev.response === 'string') return ev.response;
+              if (ev.type === 'raw' && typeof ev.raw === 'string') return ev.raw;
+              return '';
+            })
+            .join('');
+          finalText = finalText.trim();
+        } else {
+          // fallback to agg
+          finalText = String(agg || '').trim();
+        }
 
-            if (!retryResult?.success) {
-              toast.error(`Lỗi khi phát âm: ${retryResult.error}`);
-              stopAll();
-            }
+        if (finalText) {
+          // inform UI we're thinking / speaking
+          startThinking();
+
+          if (!isAzureReady) {
+            // SDK not ready: log and skip speaking (optionally could wait/retry)
+            console.warn('Azure TTS not ready - skipping speak for now');
           } else {
-            toast.error(`Lỗi khi phát âm: ${speakResult.error}`);
-            stopAll();
+            const speakResult = await speakAzure(finalText) as { success: boolean; error?: string };
+
+            if (!speakResult?.success && speakResult?.error) {
+              stopAll();
+
+              if (speakResult.error.includes('disposed')) {
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                const retryResult = await speakAzure(finalText) as { success: boolean; error?: string };
+
+                if (!retryResult?.success) {
+                  toast.error(`Lỗi khi phát âm: ${retryResult.error}`);
+                  stopAll();
+                }
+              } else {
+                toast.error(`Lỗi khi phát âm: ${speakResult.error}`);
+                stopAll();
+              }
+            }
           }
         }
+      } catch (ttsErr: any) {
+        stopAll();
+        toast.error(ttsErr?.message || 'Không thể kích hoạt giọng nói cho AI Teacher');
+      } finally {
+        // rely on teacher speech hooks to update states
       }
-    }
-  } catch (ttsErr: any) {
-    stopAll();
-    toast.error(ttsErr?.message || 'Không thể kích hoạt giọng nói cho AI Teacher');
-  } finally {
-    // rely on teacher speech hooks to update states
-  }
     },
     onError: (error: any) => {
       console.error('Message mutation error:', error);
@@ -370,6 +378,11 @@ const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibility
   // ------------------ handleSubmit ------------------
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault?.();
+
+    if (inputDisabled) {
+      toast('Chat is disabled while the AI is presenting. Press Stop to enable.', { duration: 2500 });
+      return;
+    }
 
     if (!selectedConversationId) {
       toast.error('Chưa chọn conversation');
@@ -408,6 +421,11 @@ const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibility
   });
 
   const handleVoiceInput = () => {
+    if (inputDisabled) {
+      toast('Voice input disabled while AI is presenting. Press Stop to enable.', { duration: 2500 });
+      return;
+    }
+
     if (isListening) {
       stopListening();
     } else {
@@ -440,14 +458,7 @@ const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibility
         <div ref={collapseButtonContainerRef} className="absolute -top-[1.2rem] left-1/2 -translate-x-1/2 z-20">
           {!messageMutation.isPending ? (
             <Tooltip content="Message box is fixed open" contentClassName="text-[1.25rem] z-[60]">
-              {/* <Button
-                ref={collapseButtonRef}
-                onClick={() => showMessageBox()}
-                variant="outline"
-                className="rounded-full !p-0 bg-black/50 backdrop-blur-md border-white/30 hover:bg-black/60 text-white hover:text-white size-9 drop-shadow-lg"
-              >
-                <Icon icon="tabler:minimize" className="!size-[1.4rem] drop-shadow-lg" />
-              </Button> */}
+              {/* intentionally left empty: fixed open */}
             </Tooltip>
           ) : (
             <Button variant="outline" className="rounded-full !p-0 bg-black/50 backdrop-blur-md border-white/30 hover:bg-black/60 text-white hover:text-white size-9 drop-shadow-lg cursor-not-allowed opacity-70" disabled>
@@ -470,6 +481,13 @@ const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibility
             <p ref={subtitleRef} className="text-[1.2rem] text-white/80 font-normal drop-shadow-lg">
               {selectedConversationId ? <>Type your question here! Be specific and clear.</> : <>Use the conversation box to select or create a conversation</>}
             </p>
+
+            {/* Banner when input is disabled */}
+            {selectedConversationId && inputDisabled && (
+              <div role="status" aria-live="polite" className="mt-3 px-3 py-2 rounded-md bg-yellow-50 text-yellow-900 text-sm border border-yellow-100">
+                AI is presenting — chat disabled. Press <strong>Stop</strong> to enable chatting.
+              </div>
+            )}
           </div>
 
           <div ref={controlsRef} className="flex items-center gap-5">
@@ -480,24 +498,63 @@ const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibility
                     ref={inputRef}
                     type="text"
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => {
+                      if (inputDisabled) return;
+                      setMessage(e.target.value);
+                    }}
                     className={cn(
                       'w-full h-12 bg-transparent border-t-0 border-l-0 border-r-0 rounded-none border-b-[.1rem] border-b-white text-white placeholder:text-white/80 !text-[1.4rem] focus:outline-none drop-shadow-lg',
-                      messageMutation.isPending && 'pointer-events-none'
+                      (messageMutation.isPending || inputDisabled) && 'pointer-events-none opacity-70'
                     )}
-                    placeholder="Ask something..."
-                    onKeyDown={(e) => e.key === 'Enter' && !messageMutation.isPending && handleSubmit()}
+                    placeholder={inputDisabled ? 'AI is presenting — chat disabled. Press Stop to enable.' : 'Ask something...'}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !messageMutation.isPending) {
+                        if (inputDisabled) {
+                          e.preventDefault();
+                          toast('Chat is disabled while the AI is presenting. Press Stop to enable.', { duration: 2000 });
+                          return;
+                        }
+                        handleSubmit();
+                      }
+                    }}
+                    disabled={inputDisabled || messageMutation.isPending}
+                    aria-disabled={inputDisabled || messageMutation.isPending}
                   />
                 </div>
 
                 <div className="flex gap-3.5">
                   <Tooltip content="Voice Chat" contentClassName="text-[1.25rem] z-[60]">
-                    <Button onClick={handleVoiceInput} variant="outline" className={cn('rounded-full bg-white/10 border-white/30 hover:bg-white/20 text-white hover:text-white size-14 drop-shadow-lg !p-0', isListening && 'bg-white border-white/30 hover:bg-white/30')}>
+                    <Button
+                      onClick={handleVoiceInput}
+                      variant="outline"
+                      className={cn(
+                        'rounded-full bg-white/10 border-white/30 hover:bg-white/20 text-white hover:text-white size-14 drop-shadow-lg !p-0',
+                        isListening && 'bg-white border-white/30 hover:bg-white/30',
+                        (inputDisabled || messageMutation.isPending) && 'cursor-not-allowed opacity-60 pointer-events-none'
+                      )}
+                      disabled={inputDisabled || messageMutation.isPending}
+                      aria-disabled={inputDisabled || messageMutation.isPending}
+                    >
                       <Icon icon={isListening ? 'si:mic-fill' : 'si:mic-line'} className={cn('!size-[1.4rem] drop-shadow-lg', isListening && 'text-black')} />
                     </Button>
                   </Tooltip>
 
-                  <Button onClick={handleSubmit} variant="default" className={cn('rounded-full bg-primary/80 hover:bg-primary size-14 !p-0 drop-shadow-lg', messageMutation.isPending && 'pointer-events-none')}>
+                  <Button
+                    onClick={() => {
+                      if (inputDisabled) {
+                        toast('Chat is disabled while the AI is presenting. Press Stop to enable.', { duration: 2000 });
+                        return;
+                      }
+                      handleSubmit();
+                    }}
+                    variant="default"
+                    className={cn(
+                      'rounded-full bg-primary/80 hover:bg-primary size-14 !p-0 drop-shadow-lg',
+                      (messageMutation.isPending || inputDisabled) && 'pointer-events-none opacity-60'
+                    )}
+                    disabled={messageMutation.isPending || inputDisabled}
+                    aria-disabled={messageMutation.isPending || inputDisabled}
+                  >
                     {messageMutation.isPending ? (
                       <svg viewBox="25 25 50 50" className="!size-[1.75rem] loading__svg">
                         <circle r="20" cy="50" cx="50" className="loading__circle !stroke-white" />
