@@ -7,4 +7,14 @@ interface Lesson {
   updatedAt: string
 }
 
+export type LessonContent = {
+    url_pdf: string;
+    content: string;
+};
+
+export type CreateLessonResponse = {
+    lesson_id: string;
+    content: LessonContent[];
+};
+
 export type { Lesson }

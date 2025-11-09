@@ -34,7 +34,7 @@ interface ConversationItemProps {
 }
 
 const ConversationItem = ({ 
-  conversation, 
+  conversation,   
   isSelected, 
   isUpdateLoading = false,
   isDeleteLoading = false,

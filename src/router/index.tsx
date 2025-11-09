@@ -5,6 +5,7 @@ import { AuthLayout, MainLayout, ClassRoomLayout, DashboardLayout, InstructorLay
 import { ErrorBoundary } from '@/components';
 // import { getCookie, isTokenValid, deleteCookie } from '@/stores';
 import { useAuthStore } from '@/stores/auth.store';
+import { InstructorRoute } from './RoleGuard';
 
 
 const Pages = {
@@ -32,42 +33,6 @@ const Pages = {
   }
 };
 
-// helper lấy token: ưu tiên cookie, fallback localStorage
-// const getToken = (): string | null => {
-//   const cookieToken = getCookie('token');
-//   if (cookieToken) return cookieToken;
-//   const localToken = localStorage.getItem('token');
-//   return localToken ?? null;
-// };
-
-// parse token safe — có thể truyền token làm argument
-// const parseToken = (token?: string) => {
-//   const t = token ?? getToken();
-//   if (!t) return null;
-//   try {
-//     const payload = JSON.parse(atob(t.split('.')[1]));
-//     return payload; // { sub, email, role }
-//   } catch (err) {
-//     console.error('parseToken error', err);
-//     return null;
-//   }
-// };
-
-// const authGuard = () => {
-//   const token = getToken();
-
-//   if (!token || !isTokenValid(token)) {
-//     // nếu có token không hợp lệ thì xoá cả cookie + localStorage
-//     if (token) {
-//       try { deleteCookie('token'); } catch {}
-//       try { localStorage.removeItem('token'); } catch {}
-//     }
-//     return redirect('/auth/login');
-//   }
-//   // trả null để route tiếp tục (không redirect)
-//   return null;
-// };
-
 // Protected Route Component
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated)
@@ -84,7 +49,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 }
 
 // Auth Route Component (redirect nếu đã đăng nhập)
-// Auth Route Component (redirect nếu đã đăng nhập)
 export const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated)
   const isLoading = useAuthStore(state => state.isLoading)
@@ -100,38 +64,6 @@ export const AuthRoute = ({ children }: { children: React.ReactNode }) => {
 
   return <>{children}</>
 }
-
-// const redirectIfAuthenticated = () => {
-//   const token = getToken();
-//   if (token && isTokenValid(token)) {
-//     const payload = parseToken(token);
-//     if (payload?.role === 'INSTRUCTOR' || payload?.role === 'instructor') {
-//       return redirect('/instructor');
-//     } else {
-//       return redirect('/');
-//     }
-//   }
-//   return null;
-// };
-
-// const instructorGuard = () => {
-//   const token = getToken();
-//   if (!token || !isTokenValid(token)) {
-//     // không hợp lệ -> xóa token nếu có và yêu cầu login
-//     try { deleteCookie('token'); } catch {}
-//     try { localStorage.removeItem('token'); } catch {}
-//     return redirect('/auth/login');
-//   }
-
-//   const payload = parseToken(token);
-//   // Nếu payload thiếu hoặc role không phải instructor -> redirect to login hoặc unauthorized
-//   if (!payload || !(payload.role === 'INSTRUCTOR' || payload.role === 'instructor')) {
-//     return redirect('/auth/login');
-//   }
-
-//   // thành công -> KHÔNG redirect, trả null để cho phép vào route
-//   return null;
-// };
 
 export const router = createBrowserRouter([
   {
@@ -170,7 +102,8 @@ export const router = createBrowserRouter([
   },
   {
     path: '/instructor',
-    element: <ProtectedRoute><InstructorLayout /></ProtectedRoute>,
+    // <-- dùng InstructorRoute để kiểm tra cả auth + role INSTRUCTOR -->
+    element: <InstructorRoute><InstructorLayout /></InstructorRoute>,
     children: [
       { index: true, element: <Pages.Instructor.Home /> },
       { path: 'create-course', element: <Pages.Instructor.CreateCourse /> },
