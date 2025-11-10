@@ -26,11 +26,12 @@ interface MessageBoxProps {
   onVisibilityChange?: (visible: boolean) => void;
   selectedConversationId?: string | null;
   inputDisabled?: boolean;
+  isEndLesson?: boolean;
 }
 
 const GRAPHQL_ENDPOINT = import.meta.env.VITE_API_BACKEND_URL || "https://learnify-be.onrender.com/graphql";
 
-const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibilityChange, selectedConversationId, inputDisabled = false }, ref) => {
+const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibilityChange, selectedConversationId, inputDisabled = false, isEndLesson = false }, ref) => {
   const { courseId, lessonId } = useParams();
   const authUser = useAuthStore((s) => s.user);
 
@@ -475,23 +476,26 @@ const MessageBox = forwardRef<MessageBoxHandle, MessageBoxProps>(({ onVisibility
         <div ref={contentRef} className="size-full flex flex-col justify-between px-[1.6rem] py-[1.4rem]">
           <div className="flex flex-col">
             <p ref={titleRef} className="text-[1.8rem] font-semibold text-white drop-shadow-lg -mb-[.05rem] flex items-center flex-wrap">
-              {selectedConversationId ? <span ref={contentContainerRef} className="flex items-center">Ask a question about today's lesson</span> : <>Select a conversation</>}
+              {selectedConversationId ? (isEndLesson ? <span ref={contentContainerRef} className="flex items-center">Ask a question about today's lesson</span> : <>Wait for end the lecturer to ask question</>)
+                : <span className="flex items-center">Choose conversation to start</span>
+              }
             </p>
 
-            <p ref={subtitleRef} className="text-[1.2rem] text-white/80 font-normal drop-shadow-lg">
-              {selectedConversationId ? <>Type your question here! Be specific and clear.</> : <>Use the conversation box to select or create a conversation</>}
-            </p>
+              <p ref={subtitleRef} className="text-[1.2rem] text-white/80 font-normal drop-shadow-lg">
+                {selectedConversationId ? (isEndLesson ? <>Type your question here! Be specific and clear.</> : <></>)
+                 : <>Use the conversation box to select or create a conversation</>}
+              </p>
 
             {/* Banner when input is disabled */}
-            {selectedConversationId && inputDisabled && (
+            {selectedConversationId && !isEndLesson && (
               <div role="status" aria-live="polite" className="mt-3 px-3 py-2 rounded-md bg-yellow-50 text-yellow-900 text-sm border border-yellow-100">
-                AI is presenting — chat disabled. Press <strong>Stop</strong> to enable chatting.
+                Click start lesson button and wait till lecturer end
               </div>
             )}
           </div>
 
           <div ref={controlsRef} className="flex items-center gap-5">
-            {selectedConversationId ? (
+            {(selectedConversationId && isEndLesson) ? (
               <>
                 <div className="flex-1 relative">
                   <Input

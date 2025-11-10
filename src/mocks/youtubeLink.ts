@@ -1,14 +1,14 @@
 export const youtubeLink = [
     {
-        title: 'Introduction to React',
-        url: 'https://www.youtube.com/watch?v=Ke90Tje7VS0'
+        title: 'DSA Full Course - Bro Code',
+        url: 'https://www.youtube.com/watch?v=CBYHwZcbD-s&t=8313s'
     },
     {
-        title: 'TypeScript Basics',
-        url: 'https://www.youtube.com/watch?v=BwuLxPH8IDs'
+        title: 'DSA Roadmap',
+        url: 'https://www.youtube.com/watch?v=QkV3xlxdF_0'
     },
     {
-        title: 'JavaScript ES6 Features',
-        url: 'https://www.youtube.com/watch?v=NCwa_xi0Uuc'
+        title: '300 Bài Code Thiếu Nhi bản real ;))',
+        url: 'https://www.youtube.com/watch?v=IjWuRvHyS3Q&t=1073s'
     }
 ]
