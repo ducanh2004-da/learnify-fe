@@ -198,6 +198,7 @@ export default function ClassRoomPage() {
   const [zoomConversationBox, setZoomConversationBox] = useState<boolean>(true);
   const [zoomReferenceBox, setZoomReferenceBox] = useState<boolean>(true);
   const [zoomNoteBox, setZoomNoteBox] = useState<boolean>(true);
+  const [isEndLesson, setEndLesson] = useState<boolean>(false);
 
   // new states/refs for controlling input
   const [isDisplayingSlide, setIsDisplayingSlide] = useState<boolean>(false);
@@ -552,13 +553,34 @@ export default function ClassRoomPage() {
     // stop TTS if running
     try { stopAzure(); } catch { }
 
-    // clear slide-wait state
-    displayingSlideIdRef.current = null;
-    setIsDisplayingSlide(false);
-    if (displayingSlideTimeoutRef.current) {
-      window.clearTimeout(displayingSlideTimeoutRef.current);
-      displayingSlideTimeoutRef.current = null;
-    }
+    // clear slide-wait state & any timers
+  displayingSlideIdRef.current = null;
+  setIsDisplayingSlide(false);
+  if (displayingSlideTimeoutRef.current) {
+    window.clearTimeout(displayingSlideTimeoutRef.current);
+    displayingSlideTimeoutRef.current = null;
+  }
+
+  // remove slide messages from chat so slide image/iframe disappears immediately.
+  // Criteria: messages with id starting with 'section:' OR messages that contain markdown image.
+  setMessages((prev) =>
+    prev.filter((m) => {
+      try {
+        const idStr = String(m.id ?? '');
+        if (idStr.startsWith('section:')) return false;
+        const txt = String(m.text ?? '');
+        if (/\!\[.*?\]\(.*?\)/.test(txt)) return false; // strip markdown images
+        // optional: also remove plain pdf links (common for slides)
+        if (/\.pdf(\?|$)/i.test(txt)) return false;
+        return true;
+      } catch {
+        return true;
+      }
+    })
+  );
+
+  // mark lesson ended (user stopped)
+  setEndLesson(true);
   }, [stopAzure]);
 
   // always scroll to bottom when messages change or streaming state changes
@@ -675,7 +697,8 @@ export default function ClassRoomPage() {
         await new Promise((r) => setTimeout(r, pauseMs));
       }
 
-      toast.success('Bắt đầu bài học.');
+      setEndLesson(true);
+      toast.success('Kết thúc bài học.');
     } catch (err) {
       console.error('handleStartLesson error', err);
       toast.error('Không thể bắt đầu bài học.');
@@ -824,7 +847,7 @@ export default function ClassRoomPage() {
               {messages.length === 0 && (
                 <div className="text-center text-slate-400 mt-8">
                   <div className="text-2xl font-medium mb-4">Welcome! Ready to start the lesson?</div>
-                  <div className="mt-2 text-base mb-6">Choose Conversation to get started</div>
+                  <div className="mt-2 text-base mb-6">{selectedConversationId ? (<>CLick Start lesson button to start lecturer</>) : (<>Choose Conversation to get started</>)}</div>
 
                   {!lessonStartedByUser ? (
                     selectedConversationId ? (
@@ -835,15 +858,6 @@ export default function ClassRoomPage() {
                           disabled={Boolean(fetchSectionsMutation?.isPending) || !selectedConversationId}
                         >
                           {fetchSectionsMutation?.isPending ? 'Loading...' : 'Start lesson'}
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            // optional: preview first slide only, or other action
-                          }}
-                        >
-                          Preview
                         </Button>
                       </div>
                     ) : (
@@ -913,8 +927,8 @@ export default function ClassRoomPage() {
 
             {/* Input area */}
             <div className="mt-50">
-              <MessageBox ref={messageBoxRef} visible={boxesVisibility.message} onVisibilityChange={(v: boolean) => setBoxesVisibility((p) => ({ ...p, message: v }))} selectedConversationId={selectedConversationId} inputDisabled={inputDisabled} />
-              <Button className="ml-330 mb-6 p-7" onClick={handleStop}>Stop</Button>
+              <MessageBox ref={messageBoxRef} visible={boxesVisibility.message} onVisibilityChange={(v: boolean) => setBoxesVisibility((p) => ({ ...p, message: v }))} selectedConversationId={selectedConversationId} inputDisabled={inputDisabled} isEndLesson={isEndLesson} />
+              <Button className="ml-330 mb-6 p-7" onClick={handleStop}>Stop Lecturer</Button>
             </div>
           </div>
         </div>
