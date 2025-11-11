@@ -10,7 +10,7 @@ export interface Notes {
 export interface CreateNoteInput {
   title: string;
   content: string;
-  enrollmentId: string;
+  enrollmentId: string | null;
 }
 
 export interface UpdateNoteInput {
