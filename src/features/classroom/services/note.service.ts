@@ -2,7 +2,7 @@ import { apiConfig } from '@/configs'
 import { Notes, CreateNoteInput, UpdateNoteInput } from '../types'
 
 export const noteService = {
-    getNotesByEnrollment: async(enrollmentId: string): Promise<Notes[]> => {
+    getNotesByEnrollment: async(enrollmentId: string | null): Promise<Notes[]> => {
         const response = await apiConfig.post('', {
             query: `
             query GetNotesByEnrollment($enrollmentId: String!) {

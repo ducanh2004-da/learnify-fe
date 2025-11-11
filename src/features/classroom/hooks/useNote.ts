@@ -6,26 +6,27 @@ import { toast } from 'sonner';
 
 const QUERY_KEY = 'notes';
 
-export function useNotes(enrollmentId: string) {
+export function useNotes(enrollmentId: string | null) {
   return useQuery<Notes[]>({
-    queryKey: [QUERY_KEY, enrollmentId],
+    queryKey: [QUERY_KEY, enrollmentId ?? null],
     queryFn: () => noteService.getNotesByEnrollment(enrollmentId),
     staleTime: 1000 * 30, // 30 seconds
     retry: 1,
   });
 }
 
-export function useCreateNote(enrollmentId: string) {
+export function useCreateNote(enrollmentId: string | null) {
   return useMutation({
     mutationFn: (input: CreateNoteInput) => noteService.createNote(input),
     onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: [QUERY_KEY, enrollmentId] });
+      await queryClient.cancelQueries({ queryKey: [QUERY_KEY, enrollmentId ?? null] });
       
       const previous = queryClient.getQueryData<Notes[]>([QUERY_KEY, enrollmentId]) ?? [];
       
       const optimisticNote: Notes = {
         id: `temp-${Date.now()}`,
         ...input,
+        enrollmentId: enrollmentId ?? '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -59,12 +60,12 @@ export function useCreateNote(enrollmentId: string) {
   });
 }
 
-export function useUpdateNote(enrollmentId: string) {
+export function useUpdateNote(enrollmentId: string | null) {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateNoteInput }) =>
       noteService.updateNote(id, input),
     onMutate: async ({ id, input }) => {
-      await queryClient.cancelQueries({ queryKey: [QUERY_KEY, enrollmentId] });
+      await queryClient.cancelQueries({ queryKey: [QUERY_KEY, enrollmentId ?? null] });
       
       const previous = queryClient.getQueryData<Notes[]>([QUERY_KEY, enrollmentId]) ?? [];
       
@@ -92,11 +93,11 @@ export function useUpdateNote(enrollmentId: string) {
   });
 }
 
-export function useDeleteNote(enrollmentId: string) {
+export function useDeleteNote(enrollmentId: string | null) {
   return useMutation({
     mutationFn: (id: string) => noteService.deleteNote(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: [QUERY_KEY, enrollmentId] });
+      await queryClient.cancelQueries({ queryKey: [QUERY_KEY, enrollmentId ?? null] });
       
       const previous = queryClient.getQueryData<Notes[]>([QUERY_KEY, enrollmentId]) ?? [];
       

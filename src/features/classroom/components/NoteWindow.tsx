@@ -5,9 +5,13 @@ import { toast } from 'sonner';
 import { Notes, NoteDraft, CreateNoteInput } from '../types';
 import { useNotes, useCreateNote, useUpdateNote, useDeleteNote } from '../hooks/useNote';
 import { useAutosave } from '../hooks/useAutosave';
+import { enrollmentService } from './../services/enrollment.service';
+import { useQuery } from '@tanstack/react-query';
+import { Enrollemnt } from '../types/enrollment.type';
+import { useAuthStore } from '@/stores';
+import { useParams } from 'react-router-dom';
 
 // Constants
-const ENROLLMENT_ID = '5904fbff-f79f-4c61-b860-7e449fc5fcf7';
 const AUTOSAVE_DELAY = 600;
 
 // Utility functions
@@ -24,7 +28,18 @@ function truncateContent(content: string, maxLength = 60): string {
 }
 
 export default function NoteWindow() {
+  const { user: authUser } = useAuthStore()
+  const { courseId, lessonId } = useParams();
   // Data fetching
+  const {
+    data: enrollment,
+  } = useQuery<Enrollemnt>({
+    queryKey: ['getEnrollment', authUser?.id],
+    queryFn: () => enrollmentService.findEnrollemnt(courseId),
+    enabled: !!authUser?.id
+  })
+  const ENROLLMENT_ID = enrollment?.id ?? null;
+
   const { data: notes = [], isLoading, isError } = useNotes(ENROLLMENT_ID);
   const createNoteMutation = useCreateNote(ENROLLMENT_ID);
   const updateNoteMutation = useUpdateNote(ENROLLMENT_ID);
@@ -35,6 +50,7 @@ export default function NoteWindow() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [draft, setDraft] = useState<NoteDraft | null>(null);
+  const [isNew, setNew] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -95,8 +111,9 @@ export default function NoteWindow() {
     const input: CreateNoteInput = {
       title: 'New Note',
       content: '',
-      enrollmentId: ENROLLMENT_ID,
+      enrollmentId: ENROLLMENT_ID ?? null,
     };
+    setNew(prev => !prev);
     
     createNoteMutation.mutate(input, {
       onSuccess: (newNote) => {
@@ -294,7 +311,11 @@ export default function NoteWindow() {
                     layout
                     role="button"
                     tabIndex={0}
-                    onClick={() => setSelectedId(note.id)}
+                    onClick={() => {
+                      setNew(prev => !prev);
+                      setSelectedId(note.id);
+                    }
+                  }
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
@@ -423,7 +444,7 @@ export default function NoteWindow() {
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center h-full text-slate-400">
+              <div className="flex justify-center h-full text-slate-400">
                 Select a note to view or edit
               </div>
             )}
