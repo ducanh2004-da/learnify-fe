@@ -14,7 +14,8 @@ const Pages = {
     About: lazy(() => import('@/pages/public/About')),
     Courses: lazy(() => import('@/pages/public/Courses')),
     CourseDetails: lazy(() => import('@/pages/public/CourseDetails')),
-    Contact: lazy(() => import('@/pages/public/Contact'))
+    Contact: lazy(() => import('@/pages/public/Contact')),
+    User: lazy(() => import('@/pages/public/Chat'))
   },
   Auth: {
     Login: lazy(() => import('@/pages/public/auth/Login')),
@@ -75,6 +76,7 @@ export const router = createBrowserRouter([
       { path: 'courses', element: <Pages.Main.Courses /> },
       { path: 'courses/:courseId', element: <Pages.Main.CourseDetails /> },
       { path: 'contact', element: <Pages.Main.Contact /> },
+      { path: 'user', element: <Pages.Main.User /> },
     ],
     errorElement: <ErrorBoundary />
   },

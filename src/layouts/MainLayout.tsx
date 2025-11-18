@@ -35,6 +35,7 @@ export default function MainLayout(): JSX.Element {
     { title: 'About', path: '/about' },
     { title: 'Courses', path: '/courses' },
     { title: 'Contact', path: '/contact' },
+    { title: 'Connect friend', path: '/user' },
     { title: 'Mind map Storage', path: '/mindmap-store' }
   ]
 
