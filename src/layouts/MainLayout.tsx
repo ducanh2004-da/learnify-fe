@@ -287,6 +287,7 @@ export default function MainLayout(): JSX.Element {
     <div className="min-h-screen w-full bg-white">
       <MainNav />
       <main>
+        {/* thêm animation khi chuyển giữa các trang */}
         <PageTransition>
           <Outlet />
         </PageTransition>

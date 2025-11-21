@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, redirect, Navigate } from 'react-router-dom';
 
 import { AuthLayout, MainLayout, ClassRoomLayout, DashboardLayout, InstructorLayout } from '@/layouts';
@@ -49,6 +49,11 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>
 }
 
+//Hiển thị loading UI trong lúc tải component
+const withSuspense = (Element: any) => (
+  <Suspense fallback={<div style={{ padding: 20 }}>Loading...</div>}>{Element}</Suspense>
+)
+
 // Auth Route Component (redirect nếu đã đăng nhập)
 export const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated)
@@ -71,12 +76,12 @@ export const router = createBrowserRouter([
     path: '/',
     element: <MainLayout />,
     children: [
-      { index: true, element: <Pages.Main.Home /> },
-      { path: 'about', element: <Pages.Main.About /> },
-      { path: 'courses', element: <Pages.Main.Courses /> },
-      { path: 'courses/:courseId', element: <Pages.Main.CourseDetails /> },
-      { path: 'contact', element: <Pages.Main.Contact /> },
-      { path: 'user', element: <Pages.Main.User /> },
+      { index: true, element: withSuspense(<Pages.Main.Home />) },
+      { path: 'about', element: withSuspense(<Pages.Main.About />) },
+      { path: 'courses', element: withSuspense(<Pages.Main.Courses />) },
+      { path: 'courses/:courseId', element: withSuspense(<Pages.Main.CourseDetails />) },
+      { path: 'contact', element: withSuspense(<Pages.Main.Contact />) },
+      { path: 'user', element: withSuspense(<Pages.Main.User />) },
     ],
     errorElement: <ErrorBoundary />
   },
@@ -84,8 +89,8 @@ export const router = createBrowserRouter([
     path: '/auth',
     element: <AuthLayout />,
     children: [
-      { path: 'login', element: <AuthRoute><Pages.Auth.Login /></AuthRoute> },
-      { path: 'signup', element: <AuthRoute><Pages.Auth.Register /></AuthRoute> }
+      { path: 'login', element: withSuspense(<AuthRoute><Pages.Auth.Login /></AuthRoute>) },
+      { path: 'signup', element: withSuspense(<AuthRoute><Pages.Auth.Register /></AuthRoute>) }
     ],
     errorElement: <ErrorBoundary />
   },
@@ -98,8 +103,8 @@ export const router = createBrowserRouter([
     path: '/dashboard/classroom',
     element: <ProtectedRoute><ClassRoomLayout /></ProtectedRoute>,
     children: [
-      { index: true, element: <Pages.Dashboard.ClassRoom /> },
-      { path: ':courseId/lessons/:lessonId', element: <Pages.Dashboard.ClassRoom /> }
+      { index: true, element: withSuspense(<Pages.Dashboard.ClassRoom />) },
+      { path: ':courseId/lessons/:lessonId', element: withSuspense(<Pages.Dashboard.ClassRoom />) }
     ]
   },
   {
@@ -107,15 +112,15 @@ export const router = createBrowserRouter([
     // <-- dùng InstructorRoute để kiểm tra cả auth + role INSTRUCTOR -->
     element: <InstructorRoute><InstructorLayout /></InstructorRoute>,
     children: [
-      { index: true, element: <Pages.Instructor.Home /> },
-      { path: 'create-course', element: <Pages.Instructor.CreateCourse /> },
-      { path: 'courses', element: <Pages.Instructor.CourseManagement /> },
+      { index: true, element: withSuspense(<Pages.Instructor.Home />) },
+      { path: 'create-course', element: withSuspense(<Pages.Instructor.CreateCourse />) },
+      { path: 'courses', element: withSuspense(<Pages.Instructor.CourseManagement />) },
     ],
     errorElement: <ErrorBoundary />
   },
   {
     path: '/profile',
-    element: <Pages.Profile.ProfilePage />,
+    element: withSuspense(<Pages.Profile.ProfilePage />),
     errorElement: <ErrorBoundary />
   }
 ]);
